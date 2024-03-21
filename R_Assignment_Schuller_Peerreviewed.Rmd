@@ -1,0 +1,351 @@
+---
+title: "R_Assignment_Schuller"
+author: "Colin Schuller"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Loading Tidyverse and files to the environment
+
+```{r}
+library(tidyverse)
+
+```
+
+```{r}
+fang_et_al_genotypes <- read.delim("https://github.com/EEOB-BioData/BCB546_Spring2024/blob/main/assignments/UNIX_Assignment/fang_et_al_genotypes.txt?raw=true", header = TRUE, sep = "\t")
+
+snp_position <- read.delim("https://github.com/EEOB-BioData/BCB546_Spring2024/blob/main/assignments/UNIX_Assignment/snp_position.txt?raw=true", header = TRUE, sep = "\t")
+
+```
+
+# File Information
+
+Dimensions of the file, including columns, rows, data structure, column names, row names, and first 10 rows of the data
+
+```{r}
+dim(fang_et_al_genotypes)
+dim(snp_position)
+
+paste0("This file, fang_et_al, has ", dim(fang_et_al_genotypes)[1], " rows and ", dim(fang_et_al_genotypes)[2], " columns.")
+
+paste0("This file, snp_position, has ", dim(snp_position)[1], " rows and ", dim(snp_position)[2], " columns.")
+
+str(fang_et_al_genotypes[, 1:10])
+str(snp_position[, 1:10])
+
+
+```
+
+# Maize SNP data
+
+Grab the important maize genotypes for later
+
+```{r}
+maize_genotypes <- fang_et_al_genotypes %>% filter(grepl("ZMMIL|ZMMLR|ZMMMR", Group))
+
+```
+
+Cut out the required snp columns for analysis
+
+```{r}
+snp_position_cut <- snp_position[,c(1,3,4)]
+
+```
+
+Transposed the data
+
+```{r}
+transposed_maize_genotypes <- as.data.frame(t(maize_genotypes))
+
+```
+
+Reformat the transposed file and remove the first 3 rows as they have data not suitable for merging the files in later steps.
+
+```{r}
+transposed_maize_genotypes_reformatted <- transposed_maize_genotypes %>% rownames_to_column(var="Sample_ID")
+
+transposed_maize_genotypes_reformatted <- transposed_maize_genotypes_reformatted[-1:-3,]
+
+names(transposed_maize_genotypes_reformatted)[1] <-"SNP_ID"
+
+```
+
+Joining the two files together(x2), one for the '?' missing data symbol and one for the '-' missing data symbol for later
+
+```{r}
+maize_genotypes_snp_merged_q <- inner_join(snp_position_cut,transposed_maize_genotypes_reformatted, by = "SNP_ID")
+
+maize_genotypes_snp_merged_d <- inner_join(snp_position_cut,transposed_maize_genotypes_reformatted, by = "SNP_ID")
+
+
+```
+
+Changing all the '?' to '-' for later
+
+```{r}
+maize_genotypes_snp_merged_d[maize_genotypes_snp_merged_d == "?/?"] <- "-/-"
+
+```
+
+Organizing by increasing snp position with '?' for missing data
+
+```{r}
+maize_genotypes_snp_merged_q_sorted_increasing <- maize_genotypes_snp_merged_q[order(as.numeric(maize_genotypes_snp_merged_q$Position)),]
+
+
+```
+
+Organizing by decreasing snp position with '-' for missing data
+
+```{r}
+maize_genotypes_snp_merged_d_sorted_decreasing <- maize_genotypes_snp_merged_d[order(as.numeric(maize_genotypes_snp_merged_d$Position), decreasing = TRUE),]
+
+```
+Organizing the increasing and decreasing position chromosome data by moving each chromosome to their own file
+
+First create the directories you need
+```{r}
+ 
+dir.create('./increasingmaize') 
+dir.create('./decreasingmaize')
+
+
+#Then use lapply to create the data series
+
+lapply(unique(maize_genotypes_snp_merged_q_sorted_increasing$Chromosome), function(chrom_num) {
+  maizechrom <- maize_genotypes_snp_merged_q_sorted_increasing %>% filter(Chromosome == chrom_num) %>% arrange(Position)
+  write.table(maizechrom,sep = "\t", file = paste("./increasingmaize/maizeincreasing", chrom_num, sep = "_"), quote = FALSE)
+})
+
+
+lapply(unique(maize_genotypes_snp_merged_d_sorted_decreasing$Chromosome), function(chrom_num) {
+  maizechrom <- maize_genotypes_snp_merged_d_sorted_decreasing %>% filter(Chromosome == chrom_num) %>% arrange(Position)
+  write.table(maizechrom,sep = "\t", file = paste("./decreasingmaize/maizedecreasing", chrom_num, sep = "_"), quote = FALSE)
+})
+
+
+```
+
+Naming the separated files for data visualization
+
+```{r}
+maize_chr_1_increasing <- maize_genotypes_snp_merged_q_sorted_increasing %>% filter(grepl("1$", Chromosome))
+maize_chr_2_increasing <- maize_genotypes_snp_merged_q_sorted_increasing %>% filter(grepl("2$", Chromosome))
+maize_chr_3_increasing <- maize_genotypes_snp_merged_q_sorted_increasing %>% filter(grepl("3$", Chromosome))
+maize_chr_4_increasing <- maize_genotypes_snp_merged_q_sorted_increasing %>% filter(grepl("4$", Chromosome))
+maize_chr_5_increasing <- maize_genotypes_snp_merged_q_sorted_increasing %>% filter(grepl("5$", Chromosome))
+maize_chr_6_increasing <- maize_genotypes_snp_merged_q_sorted_increasing %>% filter(grepl("6$", Chromosome))
+maize_chr_7_increasing <- maize_genotypes_snp_merged_q_sorted_increasing %>% filter(grepl("7$", Chromosome))
+maize_chr_8_increasing <- maize_genotypes_snp_merged_q_sorted_increasing %>% filter(grepl("8$", Chromosome))
+maize_chr_9_increasing <- maize_genotypes_snp_merged_q_sorted_increasing %>% filter(grepl("9$", Chromosome))
+maize_chr_10_increasing <- maize_genotypes_snp_merged_q_sorted_increasing %>% filter(grepl("10$", Chromosome))
+
+maize_chr_1_decreasing <- maize_genotypes_snp_merged_d_sorted_decreasing %>% filter(grepl("1$", Chromosome))
+maize_chr_2_decreasing <- maize_genotypes_snp_merged_d_sorted_decreasing %>% filter(grepl("2$", Chromosome))
+maize_chr_3_decreasing <- maize_genotypes_snp_merged_d_sorted_decreasing %>% filter(grepl("3$", Chromosome))
+maize_chr_4_decreasing <- maize_genotypes_snp_merged_d_sorted_decreasing %>% filter(grepl("4$", Chromosome))
+maize_chr_5_decreasing <- maize_genotypes_snp_merged_d_sorted_decreasing %>% filter(grepl("5$", Chromosome))
+maize_chr_6_decreasing <- maize_genotypes_snp_merged_d_sorted_decreasing %>% filter(grepl("6$", Chromosome))
+maize_chr_7_decreasing <- maize_genotypes_snp_merged_d_sorted_decreasing %>% filter(grepl("7$", Chromosome))
+maize_chr_8_decreasing <- maize_genotypes_snp_merged_d_sorted_decreasing %>% filter(grepl("8$", Chromosome))
+maize_chr_9_decreasing <- maize_genotypes_snp_merged_d_sorted_decreasing %>% filter(grepl("9$", Chromosome))
+maize_chr_10_decreasing<- maize_genotypes_snp_merged_d_sorted_decreasing %>% filter(grepl("10$", Chromosome))
+
+
+```
+
+
+# Teosinte SNP data
+
+```{r}
+teosinte_genotypes <- fang_et_al_genotypes %>% filter(grepl("ZMPBA|ZMPIL|ZMPJA", Group))
+```
+
+Transposing the data
+
+```{r}
+transposed_teosinte_genotypes <- as.data.frame(t(teosinte_genotypes))
+
+```
+
+Reformat the transposed file and remove the first 3 rows as they have data not suitable for merging the files in later steps.
+
+```{r}
+transposed_teosinte_genotypes_reformatted <- transposed_teosinte_genotypes %>% rownames_to_column(var="Sample_ID")
+
+transposed_teosinte_genotypes_reformatted <- transposed_teosinte_genotypes_reformatted[-1:-3,]
+
+names(transposed_teosinte_genotypes_reformatted)[1] <-"SNP_ID"
+
+```
+
+Joining the two files together(x2), one for the '?' missing data symbol and one for the '-' missing data symbol for later
+
+```{r}
+teosinte_genotypes_snp_merged_q <- inner_join(snp_position_cut,transposed_teosinte_genotypes_reformatted, by = "SNP_ID")
+
+teosinte_genotypes_snp_merged_d <- inner_join(snp_position_cut,transposed_teosinte_genotypes_reformatted, by = "SNP_ID")
+
+
+```
+
+Changing all the '?' to '-' for later
+
+```{r}
+teosinte_genotypes_snp_merged_d[teosinte_genotypes_snp_merged_d == "?/?"] <- "-/-"
+
+```
+
+Organizing by increasing snp position with '?' for missing data
+
+```{r}
+teosinte_genotypes_snp_merged_q_sorted_increasing <- teosinte_genotypes_snp_merged_q[order(as.numeric(teosinte_genotypes_snp_merged_q$Position)),]
+
+
+```
+
+Organizing by decreasing snp position with '-' for missing data
+
+```{r}
+teosinte_genotypes_snp_merged_d_sorted_decreasing <- teosinte_genotypes_snp_merged_d[order(as.numeric(maize_genotypes_snp_merged_d$Position), decreasing = TRUE),]
+
+```
+
+Organizing the increasing and decreasing position chromosome data by moving each chromosome to their own file
+
+```{r}
+dir.create('./increasingteosinte')
+dir.create('./decreasingteosinte')
+
+#Then use lapply to create the data series.
+
+lapply(unique(teosinte_genotypes_snp_merged_q_sorted_increasing$Chromosome), function(chrom_num) {
+  teosintechrom <- teosinte_genotypes_snp_merged_q_sorted_increasing %>% filter(Chromosome == chrom_num) %>% arrange(Position)
+  write.table(teosintechrom,sep = "\t", file = paste("./increasingteosinte/teosinteincreasing", chrom_num, sep = "_"), quote = FALSE)
+})
+
+lapply(unique(teosinte_genotypes_snp_merged_d_sorted_decreasing$Chromosome), function(chrom_num) {
+  teosintechrom <- teosinte_genotypes_snp_merged_d_sorted_decreasing %>% filter(Chromosome == chrom_num) %>% arrange(Position)
+  write.table(teosintechrom,sep = "\t", file = paste("./decreasingteosinte/teosintedecreasing", chrom_num, sep = "_"), quote = FALSE)
+})
+
+```
+Naming the separated files for data visualization
+
+```{r}
+teosinte_chr_1_increasing <- teosinte_genotypes_snp_merged_q_sorted_increasing %>% filter(grepl("1$", Chromosome))
+teosinte_chr_2_increasing <- teosinte_genotypes_snp_merged_q_sorted_increasing %>% filter(grepl("2$", Chromosome))
+teosinte_chr_3_increasing <- teosinte_genotypes_snp_merged_q_sorted_increasing %>% filter(grepl("3$", Chromosome))
+teosinte_chr_4_increasing <- teosinte_genotypes_snp_merged_q_sorted_increasing %>% filter(grepl("4$", Chromosome))
+teosinte_chr_5_increasing <- teosinte_genotypes_snp_merged_q_sorted_increasing %>% filter(grepl("5$", Chromosome))
+teosinte_chr_6_increasing <- teosinte_genotypes_snp_merged_q_sorted_increasing %>% filter(grepl("6$", Chromosome))
+teosinte_chr_7_increasing <- teosinte_genotypes_snp_merged_q_sorted_increasing %>% filter(grepl("7$", Chromosome))
+teosinte_chr_8_increasing <- teosinte_genotypes_snp_merged_q_sorted_increasing %>% filter(grepl("8$", Chromosome))
+teosinte_chr_9_increasing <- teosinte_genotypes_snp_merged_q_sorted_increasing %>% filter(grepl("9$", Chromosome))
+teosinte_chr_10_increasing <- teosinte_genotypes_snp_merged_q_sorted_increasing %>% filter(grepl("10$", Chromosome))
+
+teosinte_chr_1_decreasing <- teosinte_genotypes_snp_merged_d_sorted_decreasing %>% filter(grepl("1$", Chromosome))
+teosinte_chr_2_decreasing <- teosinte_genotypes_snp_merged_d_sorted_decreasing %>% filter(grepl("2$", Chromosome))
+teosinte_chr_3_decreasing <- teosinte_genotypes_snp_merged_d_sorted_decreasing %>% filter(grepl("3$", Chromosome))
+teosinte_chr_4_decreasing <- teosinte_genotypes_snp_merged_d_sorted_decreasing %>% filter(grepl("4$", Chromosome))
+teosinte_chr_5_decreasing <- teosinte_genotypes_snp_merged_d_sorted_decreasing %>% filter(grepl("5$", Chromosome))
+teosinte_chr_6_decreasing <- teosinte_genotypes_snp_merged_d_sorted_decreasing %>% filter(grepl("6$", Chromosome))
+teosinte_chr_7_decreasing <- teosinte_genotypes_snp_merged_d_sorted_decreasing %>% filter(grepl("7$", Chromosome))
+teosinte_chr_8_decreasing <- teosinte_genotypes_snp_merged_d_sorted_decreasing %>% filter(grepl("8$", Chromosome))
+teosinte_chr_9_decreasing <- teosinte_genotypes_snp_merged_d_sorted_decreasing %>% filter(grepl("9$", Chromosome))
+teosinte_chr_10_decreasing<- teosinte_genotypes_snp_merged_d_sorted_decreasing %>% filter(grepl("10$", Chromosome))
+
+```
+
+
+# Data Visualization
+
+Maize and Teosinte SNPs on each chromosome
+
+```{r}
+ggplot(maize_genotypes_snp_merged_q, aes(x=Position, y=Chromosome)) + geom_point(col = "gold")
+
+ggplot(teosinte_genotypes_snp_merged_q, aes(x=Position, y=Chromosome)) + geom_point(col = "blue")
+
+ggplot(maize_chr_1_increasing, aes(x=Position, y=Chromosome)) + geom_point(col = "gold")
+ggplot(maize_chr_2_increasing, aes(x=Position, y=Chromosome)) + geom_point(col = "gold")
+ggplot(maize_chr_3_increasing, aes(x=Position, y=Chromosome)) + geom_point(col = "gold")
+ggplot(maize_chr_4_increasing, aes(x=Position, y=Chromosome)) + geom_point(col = "gold")
+ggplot(maize_chr_5_increasing, aes(x=Position, y=Chromosome)) + geom_point(col = "gold")
+ggplot(maize_chr_6_increasing, aes(x=Position, y=Chromosome)) + geom_point(col = "gold")
+ggplot(maize_chr_7_increasing, aes(x=Position, y=Chromosome)) + geom_point(col = "gold")
+ggplot(maize_chr_8_increasing, aes(x=Position, y=Chromosome)) + geom_point(col = "gold")
+ggplot(maize_chr_9_increasing, aes(x=Position, y=Chromosome)) + geom_point(col = "gold")
+ggplot(maize_chr_10_increasing, aes(x=Position, y=Chromosome)) + geom_point(col = "gold")
+
+ggplot(teosinte_chr_1_increasing, aes(x=Position, y=Chromosome)) + geom_point(col = "blue")
+ggplot(teosinte_chr_2_increasing, aes(x=Position, y=Chromosome)) + geom_point(col = "blue")
+ggplot(teosinte_chr_3_increasing, aes(x=Position, y=Chromosome)) + geom_point(col = "blue")
+ggplot(teosinte_chr_4_increasing, aes(x=Position, y=Chromosome)) + geom_point(col = "blue")
+ggplot(teosinte_chr_5_increasing, aes(x=Position, y=Chromosome)) + geom_point(col = "blue")
+ggplot(teosinte_chr_6_increasing, aes(x=Position, y=Chromosome)) + geom_point(col = "blue")
+ggplot(teosinte_chr_7_increasing, aes(x=Position, y=Chromosome)) + geom_point(col = "blue")
+ggplot(teosinte_chr_8_increasing, aes(x=Position, y=Chromosome)) + geom_point(col = "blue")
+ggplot(teosinte_chr_9_increasing, aes(x=Position, y=Chromosome)) + geom_point(col = "blue")
+ggplot(teosinte_chr_10_increasing, aes(x=Position, y=Chromosome)) + geom_point(col = "blue")
+
+#Based on the SNP data between Maize and Teosinte, there is no difference in SNP distribution and position while visually assessing the data.
+
+```
+
+```{r}
+#Visualize all chromosomes data in one graph
+
+maize_genotypes_snp_merged_q$Chromosome <- factor(maize_genotypes_snp_merged_q$Chromosome, levels = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "unknown", "multiple", "NA"))
+ggplot(maize_genotypes_snp_merged_q) + geom_bar(aes(x = Chromosome, fill = Chromosome)) + scale_fill_manual(values = rainbow(length(levels(maize_genotypes_snp_merged_q$Chromosome)))) + xlab("Chromosome") + ylab("AllTotal SNPs")
+
+#This graph came from ginushka during their peer revision
+
+```
+
+
+Maize and Teosinte missing data and amount of heterzygosity
+
+```{r}
+newcolumn_maize <- pivot_longer(maize_genotypes_snp_merged_q, cols = !1:3, names_to = "Genes")
+newcolumn_maize$Zygosity <- case_when(newcolumn_maize$value == "A/A" ~ "homozygous", newcolumn_maize$value == "C/C" ~ "homozygous", newcolumn_maize$value == "G/G" ~ "homozygous", newcolumn_maize$value == "T/T" ~ "homozygous", newcolumn_maize$value == "?/?" ~ "missing", .default = "heterozygous" )
+
+newcolumn_teosinte <- pivot_longer(teosinte_genotypes_snp_merged_q, cols = !1:3, names_to = "Genes")
+newcolumn_teosinte$Zygosity <- case_when(newcolumn_teosinte$value == "A/A" ~ "homozygous", newcolumn_teosinte$value == "C/C" ~ "homozygous", newcolumn_teosinte$value == "G/G" ~ "homozygous", newcolumn_teosinte$value == "T/T" ~ "homozygous", newcolumn_teosinte$value == "?/?" ~ "missing", .default = "heterozygous" )
+
+newcolumn_maize$species <- "Maize"
+newcolumn_teosinte$species <- "Teosinte"
+
+combined_column_table <- rbind(newcolumn_maize, newcolumn_teosinte)
+
+ggplot(data= combined_column_table) + geom_bar(mapping = aes(x = Chromosome, fill=Zygosity), position = "fill") + facet_wrap(~species)
+#Missing data and amount of heterozygosity
+
+```
+
+Visualizing snp type per chromosome
+
+```{r}
+#Mapping homozygous snps per chromosome for maize and teosinte
+combined_column_table_homozygous <- combined_column_table %>% filter(grepl("homozygous", Zygosity))
+
+ggplot(data= combined_column_table_homozygous) + geom_bar(mapping = aes(x = Chromosome, fill=species), position = "dodge") + ggtitle("Homozygous SNP data across chromosomes")
+
+#Mapping heterozygous snps per chromosome for maize and teosinte
+combined_column_table_heterozygous <- combined_column_table %>% filter(grepl("heterozygous", Zygosity))
+
+ggplot(data= combined_column_table_heterozygous) + geom_bar(mapping = aes(x = Chromosome, fill=species), position = "dodge") + ggtitle("Heterozygous SNP data across chromosomes")
+
+#Mapping missing snp data across chromosomes for maize and teosinte
+combined_column_table_missing <- combined_column_table %>% filter(grepl("missing", Zygosity))
+
+ggplot(data= combined_column_table_missing) + geom_bar(mapping = aes(x = Chromosome, fill=species), position = "dodge") + ggtitle("Missing SNP data across chromosomes")
+
+
+
+```
