@@ -1,0 +1,54 @@
+---
+title: "GinushikaReview"
+output: html_document
+date: "2024-03-17"
+---
+
+Peer review on March 17, 2024 by Ginushika Premarathne
+
+Overall your assignment work flow was good, and easy to follow and reproduce.
+# Data Inspection and Processing
+
+I have a suggestion for arranging maize and teosinte data in increasing and decreasing order.
+You can use the one command instead separating the data one by one for that:
+First create the directories you need 
+dir.create('./increasingmaize') 
+dir.create('./decreasingmaize')
+dir.create('./increasingteosinte')
+dir.create('./decreasingteosinte')
+
+Then use lapply to create the data series you need, also you can use can do this completely using only R commands.
+
+lapply(unique(maize_genotypes_snp_merged_q_sorted_increasing$Chromosome), function(chrom_num) {
+  maizechrom <- maize_genotypes_snp_merged_q_sorted_increasing %>% filter(Chromosome == chrom_num) %>% arrange(Position)
+  write.table(maizechrom,sep = "\t", file = paste("./increasingmaize/maizeincreasing", chrom_num, sep = "_"), quote = FALSE)
+})
+
+lapply(unique(teosinte_genotypes_snp_merged_q_sorted_increasing$Chromosome), function(chrom_num) {
+  teosintechrom <- teosinte_genotypes_snp_merged_q_sorted_increasing %>% filter(Chromosome == chrom_num) %>% arrange(Position)
+  write.table(teosintechrom,sep = "\t", file = paste("./increasingteosinte/teosinteincreasing", chrom_num, sep = "_"), quote = FALSE)
+})
+
+lapply(unique(maize_genotypes_snp_merged_d_sorted_decreasing$Chromosome), function(chrom_num) {
+  maizechrom <- maize_genotypes_snp_merged_d_sorted_decreasing %>% filter(Chromosome == chrom_num) %>% arrange(Position)
+  write.table(maizechrom,sep = "\t", file = paste("./decreasingmaize/maizedecreasing", chrom_num, sep = "_"), quote = FALSE)
+})
+
+lapply(unique(teosinte_genotypes_snp_merged_d_sorted_decreasing$Chromosome), function(chrom_num) {
+  teosintechrom <- teosinte_genotypes_snp_merged_d_sorted_decreasing %>% filter(Chromosome == chrom_num) %>% arrange(Position)
+  write.table(teosintechrom,sep = "\t", file = paste("./decreasingteosinte/teosintedecreasing", chrom_num, sep = "_"), quote = FALSE)
+})
+
+
+
+# Data visualization
+your plots look good.
+I have a one suggestion for first plot:
+You can visualize all chromosomes data in a one graph, modifying the below command
+
+maize_genotypes_snp_merged_q$Chromosome <- factor(maize_genotypes_snp_merged_q$Chromosome, levels = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "unknown", "multiple", "NA"))
+ggplot(maize_genotypes_snp_merged_q) + geom_bar(aes(x = Chromosome, fill = Chromosome)) + scale_fill_manual(values = rainbow(length(levels(maize_genotypes_snp_merged_q$Chromosome)))) + xlab("Chromosome") + ylab("AllTotal SNPs")
+
+
+
+Thanks and good luck!
